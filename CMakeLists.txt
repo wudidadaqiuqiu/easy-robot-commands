@@ -34,6 +34,7 @@ add_library(${PROJECT_NAME}_funcs SHARED
   include/${PROJECT_NAME}/stream.hpp
   include/${PROJECT_NAME}/shared_member/trigger_operation.hpp
   include/${PROJECT_NAME}/shared_member/base_caller_template.hpp
+  include/${PROJECT_NAME}/shared_member/concepts.hpp
 )
 
 # 添加头文件地址

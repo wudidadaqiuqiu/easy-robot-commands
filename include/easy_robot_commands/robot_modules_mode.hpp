@@ -23,7 +23,7 @@ struct EasyRobotCommands::StructDataT<eamsg::RobotModulesMode> {
         this->pitch_enable = msgptr->picth_enable;
         this->yaw_enable = msgptr->yaw_enable;
         return *this;
-    };
+    }
 
     static const std::string MsgTypeName;
     static const std::string topic_name;

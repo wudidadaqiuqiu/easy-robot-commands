@@ -14,7 +14,7 @@ private:
 public:
     trigger_operation(const std::function<void(call_class&)>& operation) : operate(operation) {};
     // trigger_operation() : operate([](call_class){}){};
-    void triggered(call_class& caller) const {
+    void trigger(call_class& caller) const {
         std::lock_guard<std::mutex> lock(mutex);
         operate(caller);
     };

@@ -1,5 +1,7 @@
 #include <iostream>
 #include "easy_robot_commands/robot_modules_mode.hpp"
+#include "easy_robot_commands/shared_member/concepts.hpp"
+
 
 int main() {
     using easy_robot_commands::msg::RobotModulesMode;
