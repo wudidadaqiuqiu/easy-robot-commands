@@ -26,13 +26,14 @@ ament_export_dependencies(rosidl_default_runtime)
 # new library (后面的参数是要被调用方使用的)
 add_library(${PROJECT_NAME}_funcs SHARED
   src/register_commands.cpp
+  src/base_caller_specified.cpp
   include/container/multithread_stream.hpp
   include/${PROJECT_NAME}/robot_modules_mode.hpp
   include/${PROJECT_NAME}/register_commands.hpp
   include/${PROJECT_NAME}/msg_serialized_funcs.hpp
   include/${PROJECT_NAME}/stream.hpp
   include/${PROJECT_NAME}/shared_member/trigger_operation.hpp
-  include/${PROJECT_NAME}/shared_member/base_caller_templete.hpp
+  include/${PROJECT_NAME}/shared_member/base_caller_template.hpp
 )
 
 # 添加头文件地址
@@ -50,7 +51,7 @@ rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} rosidl_typesupport_cpp)
 target_link_libraries(${PROJECT_NAME}_funcs "${cpp_typesupport_target}")
 
-add_executable(eatest src/test.cpp)
+add_executable(eatest src/test.cpp src/base_caller_specified.cpp)
 target_link_libraries(eatest "${cpp_typesupport_target}")
 target_include_directories(eatest PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -74,7 +75,8 @@ install(
   INCLUDES DESTINATION include
 )
 
-install (TARGETS eatest)
+install (TARGETS eatest
+  DESTINATION lib/${PROJECT_NAME})
 
 ## export 让调用方能找到
 # export library
