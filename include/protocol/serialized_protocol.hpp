@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <ranges>
 
-#include "container/producer.hpp"
+#include "container/concepts.hpp"
 #include "easy_robot_commands/shared_member/concepts.hpp"
 #include "protocol/crc.hpp"
 
@@ -76,16 +76,16 @@ class PackGenerator /*requires ISProducer*/ {
     }
 
     PackGenerator& operator++() {
-        std::cout << "++ op: index  :"<< std::setw(5) << index << std::endl;
+        // std::cout << "++ op: index  :"<< std::setw(5) << index << std::endl;
         ++index;
         if (index == -1) {
             temp = T::struct_data_t::ID;
-            std::cout << "ID field: " << std::setw(5) << "0x" << std::hex << static_cast<int>(temp) << std::dec <<std::endl;
+            // std::cout << "ID field: " << std::setw(5) << "0x" << std::hex << static_cast<int>(temp) << std::dec <<std::endl;
             goto crc_calc;
         } else if (index >= structure_data_size) {
             static int num;
             if (index == structure_data_size) {
-                std::cout << std::hex << "crc16 is: " << crc16 << std::dec << std::endl;
+                // std::cout << std::hex << "crc16 is: " << crc16 << std::dec << std::endl;
                 num = escape_data((uint8_t*)&crc16, 2, temp_crc);
                 temp_crc[num++] = pack_end;
             }
@@ -109,8 +109,9 @@ class PackGenerator /*requires ISProducer*/ {
     crc_calc:
         crc16 = CRC16<typename configT::CRC_CONFIG>::modbus_calc_one(&temp, crc16);
     end:
-        if (!is_ended_)
-            std::cout << "*it: 0x" << std::hex <<  static_cast<int>(temp) << std::dec << std::endl;
+        if (!is_ended_) {
+            // std::cout << "*it: 0x" << std::hex <<  static_cast<int>(temp) << std::dec << std::endl;
+        }
         return (*this);
     }
 
@@ -119,7 +120,7 @@ class PackGenerator /*requires ISProducer*/ {
     }
 
     protocol_size_t minmax_len() const {
-        std::cout << "minmax len is: " << minmax_len_ << std::endl;
+        // std::cout << "minmax len is: " << minmax_len_ << std::endl;
         return minmax_len_;
     }
 

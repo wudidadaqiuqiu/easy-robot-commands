@@ -31,6 +31,14 @@ class Stream {
         opera_when_triggered.change_operation(operation.get_operation());
     };
 
+    template <ISBlockedConsumer T>
+    Stream& operator>>(T& consumer) {
+        using state_e = multithread_stream<stream_size>::stream_state_e;
+        while(inner_stream.get_state() != state_e::stream_empty)
+            inner_stream >> consumer;
+        return *this;
+    }
+
    private:
     mutable std::mutex mutex;
     multithread_stream<stream_size> inner_stream;

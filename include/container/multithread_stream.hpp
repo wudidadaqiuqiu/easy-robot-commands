@@ -6,7 +6,7 @@
 #include <iostream>
 #include <mutex>
 
-#include "container/producer.hpp"
+#include "container/concepts.hpp"
 
 namespace EasyRobotCommands {
 
@@ -33,7 +33,7 @@ inline void debug_endl() {
         std::cout << std::endl;
     }
 }
-using stream_size_t = uint16_t;
+using stream_size_t = size_t;
 
 template <stream_size_t stream_size>
 // multi producer with only one consumer in fifo mode
@@ -175,6 +175,38 @@ class multithread_stream {
         return (*this);
     }
 
+    template <ISBlockedConsumer T>
+    multithread_stream& operator>>(T& consumer) {
+        stream_size_t consume_len;
+        const uint8_t* consume_start;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            if (state == stream_empty) {
+                return (*this);
+            }
+            consume_start = start;
+            if (endp1 > start) {
+                consume_len = endp1 - start;
+                start = endp1;
+            } else {
+                consume_len = end_buf - start;
+                start = buffer;
+            }
+        }
+        // if (!consume_len) return (*this);
+        debug_log<std::string>("consume stream... len is ");
+        debug_log<stream_size_t>(consume_len);
+        debug_endl();
+        consumer.blocked_consume(consume_start, consume_len);
+        consumer_update_protected_range();
+        debug_log<std::string>("after consume state is: ");
+        debug_log<stream_state_e>(state);
+        debug_log<std::string>("  -------------");
+        debug_endl();
+        return (*this);
+    }
+
+
     // stream_state_e void
    private:
     mutable std::mutex mutex;
@@ -212,33 +244,5 @@ class multithread_stream {
         return (protected_endp1 < protected_start) ? (protected_start - protected_endp1) : (stream_size - (protected_endp1 - protected_start));
     }
 
-    class Iterator {
-        using self = Iterator;
-        using pointer = uint8_t*;
-        using value_t = uint8_t;
-        using ref = uint8_t&;
-
-       public:
-        Iterator(const multithread_stream<stream_size>& stream_, stream_size_t index_) : stream(stream_), index(index_) {}
-        bool operator!=(const Iterator& other) const {
-            return index != other.index;
-        }
-        Iterator& operator++() {
-            index = (index + 1) % stream_size;
-            return *this;
-        }
-        uint8_t operator*() const {
-            return this->stream.buffer[index];
-        }
-
-       private:
-        const multithread_stream<stream_size>& stream;
-        stream_size_t index;
-    };
-
-    Iterator data_begin() { return Iterator(*this, protected_start - buffer); }
-    Iterator data_end() { return Iterator(*this, protected_endp1 - buffer); }
-    Iterator empty_begin() { return data_end(); }
-    Iterator empty_end() { return data_begin(); }
 };
 }  // namespace EasyRobotCommands
