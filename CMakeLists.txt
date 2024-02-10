@@ -27,10 +27,10 @@ ament_export_dependencies(rosidl_default_runtime)
 add_library(${PROJECT_NAME}_funcs SHARED
   src/register_commands.cpp
   include/container/multithread_stream.hpp
+  include/container/producer.hpp
   include/protocol/crc.hpp
   include/protocol/serialized_protocol.hpp
   include/${PROJECT_NAME}/register_commands.hpp
-  include/${PROJECT_NAME}/msg_serialized_funcs.hpp
   include/${PROJECT_NAME}/stream.hpp
   include/${PROJECT_NAME}/shared_member/trigger_operation.hpp
   include/${PROJECT_NAME}/shared_member/base_caller_template.hpp

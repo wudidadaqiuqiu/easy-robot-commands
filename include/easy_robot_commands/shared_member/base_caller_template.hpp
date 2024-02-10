@@ -29,6 +29,7 @@ struct StructDataT {
 template <typename msg_t>
 class ea_base_caller {
    public:
+   using struct_data_t = StructDataT<msg_t>;
     ea_base_caller() requires is_trigger_tree_node_concept<ea_base_caller, msg_t> 
         : struct_data(), opera_when_triggered([](ea_base_caller&) { /*do nothing*/ }){};
     void triggered_from(typename msg_t::SharedPtr msgptr);

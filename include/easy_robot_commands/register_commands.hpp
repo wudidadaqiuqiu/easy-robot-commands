@@ -2,7 +2,6 @@
 #define REGISTER_COMMANDS_HPP
 
 #include "easy_robot_commands/msg/robot_modules_mode.hpp"
-#include "easy_robot_commands/msg_serialized_funcs.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace EasyRobotCommands {

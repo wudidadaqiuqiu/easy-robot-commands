@@ -22,23 +22,28 @@ int main() {
     std::cout << EasyRobotCommands::StructDataT<RobotModulesMode>::topic_name << std::endl;
     std::cout << "sizeof struct: " << sizeof(EasyRobotCommands::StructDataT<RobotModulesMode>) << std::endl;
     // std::cout << ""
-    EasyRobotCommands::Stream<20, ProtocolConfig<CRC16Config<0xFFFF, 0x1021>, protocol_type_e::protocol1>> s;
+    EasyRobotCommands::Stream<20, ProtocolConfig<CRC16Config<0xFFFF, 0x1021>, protocol_type_e::protocol0>> s;
+    s.triggered_from(m);
     // s.begin();
     // (void)s;
 
     using Config = CRC16<CRC16Config<0xFFFF, 0x1021>>;
     static constexpr auto table = Config::get_table();
-
+    (void) table;
     // Print the generated CRC-16 table
-    std::cout << "CRC-16 Table:\n";
-    for (const auto& element : table) {
-        std::cout << element << " ";
-    }
-    std::cout << std::endl;
+    // std::cout << "CRC-16 Table: ----------------------\n\n";
+    // for (const auto& element : table) {
+    //     std::cout << element << " ";
+    // }
+    // std::cout << "\n\n" << std::endl;
 
-    EasyRobotCommands::protocol_pack<ProtocolConfig<CRC16Config<0xFFFF, 0x1021>, protocol_type_e::protocol1>>(nullptr, nullptr, 1);
+    uint8_t temp[2] = { 0x11, 0x11};
+    uint16_t crc_temp = 0;
+    std::cout << "my constructed crc is: " << ((crc_temp = Config::modbus_calc(temp, 2)))
+        << " hex:" << std::hex  << crc_temp << std::dec << std::endl;
+    // EasyRobotCommands::protocol_pack<ProtocolConfig<CRC16Config<0xFFFF, 0x1021>, protocol_type_e::protocol1>>(nullptr, nullptr, 1);
 
     multithread_stream<10> a;
-    multithread_stream<10>::Iterator p = a.data_begin();
-    (void)p;
+    // multithread_stream<10>::Iterator p = a.data_begin();
+    // (void)p;
 }

@@ -33,6 +33,9 @@ class CRC16 {
         while (num_bytes--) crc = (crc >> 8) ^ table[(crc ^ *data++) & 0xff];
         return crc;
     }
+    static uint16_t modbus_calc_one(const uint8_t* data, uint16_t crc_init = init_value) {
+        return (crc_init >> 8) ^ table[(crc_init ^ *data++) & 0xff];
+    }
     static constexpr uint16_t init_value = config_t::CRC_INIT;
     static constexpr uint16_t Poly = config_t::Poly;
     static constexpr size_t TableSize = 256;

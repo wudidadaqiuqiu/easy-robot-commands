@@ -18,16 +18,12 @@ class Stream {
         : inner_stream(), opera_when_triggered([](Stream&) { /*do nothing*/ }){};
     void trigger() { opera_when_triggered.trigger(*this); };
 
-    template <typename caller_t>
-        requires is_trigger_tree_node_concept<Stream, caller_t> &&
-                 has_get_structure_data_method<caller_t> &&
-                 has_get_struct_data_method<caller_t>
+    template <Packable caller_t>
     void triggered_from(caller_t& caller) {
         {
             std::lock_guard<std::mutex> lock(mutex);
-            // process triggered data
-            // caller.get_struct_data()
-            
+            PackGenerator<caller_t, protocol_confiT> it(caller);
+            inner_stream << it;
         }
         trigger();
     }

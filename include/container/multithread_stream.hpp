@@ -6,17 +6,28 @@
 #include <iostream>
 #include <mutex>
 
+#include "container/producer.hpp"
+
 namespace EasyRobotCommands {
 
 #define STREAM_DEBUG 0
 
 template <typename T1>
-inline void debug_log(T1 mes) {
+inline void debug_log(T1 mes, bool endlit = true) {
     if (STREAM_DEBUG) {
         std::cout << mes;
+        if (endlit) std::cout << std::endl;
     }
 }
 
+static constexpr bool strema_debug_iterator = true;
+ 
+template<typename T>
+inline void DEBUG_STREAM(bool con, T mes, bool endlit = true) {
+    if (!con) return;
+    std::cout << mes;
+    if (endlit) std::cout << std::endl;
+}
 inline void debug_endl() {
     if (STREAM_DEBUG) {
         std::cout << std::endl;
@@ -78,6 +89,7 @@ class multithread_stream {
         return (state = stream_normal);
     };
     stream_state_e add_with_caution(const uint8_t* data, stream_size_t len) {
+        std::lock_guard<std::mutex> plock(producer_mutex);
         std::lock_guard<std::mutex> lock(mutex);
         if (len == 0) return (state = (state == stream_empty) ? stream_empty : stream_normal);
         if (is_overrun(len, false)) return (state = stream_full);
@@ -123,36 +135,47 @@ class multithread_stream {
         return (state);
     };
 
-    class Iterator {
-        using self = Iterator;
-        using pointer = uint8_t*;
-        using value_t = uint8_t;
-        using ref = uint8_t&;
+    template <ISProducer T>
+    multithread_stream& operator<<(T& it) {
+        producer_mutex.lock();
+        mutex.lock();
+        const uint8_t* const pstart(protected_start);
+        uint8_t* pend(protected_endp1);
+        mutex.unlock();
 
-       public:
-        Iterator(const multithread_stream<stream_size>& stream_, stream_size_t index_) : stream(stream_), index(index_) {}
-        bool operator!=(const Iterator& other) const {
-            return index != other.index;
+        DEBUG_STREAM(strema_debug_iterator,"stream input...");
+        #define EMPTY_SIZE(start, end) ((end < start) ? (start - end) : (stream_size - (end - start)))
+        #define CIRCULAR_PLUSPLUS(end) (end = ((++end) == end_buf) ? (start_buf) : end)
+        if (it.minmax_len() > EMPTY_SIZE(pstart, pend)) {
+            DEBUG_STREAM(strema_debug_iterator, "minmax len bigger than empty size return !!", false);
+            // DEBUG_STREAM(strema_debug_iterator, it.minmax_len)
+            // std::cout << "empty size is" << EMPTY_SIZE(pstart, pend) << std::endl;
+            goto unlock;
         }
-        Iterator& operator++() {
-            index = (index + 1) % stream_size;
-            return *this;
+        for (; !it.is_ended() && EMPTY_SIZE(pstart, pend) > 1; ++it, CIRCULAR_PLUSPLUS(pend)) {
+            // DEBUG_STREAM(strema_debug_iterator, "++")
+            *pend = *it;
+            // DEBUG_STREAM(strema_debug_iterator, *pend, false);
+            // DEBUG_STREAM(strema_debug_iterator, " ", false);
         }
-        uint8_t operator*() const {
-            return this->stream.buffer[index];
-        }
+        
+        DEBUG_STREAM(strema_debug_iterator, " ");
 
-       private:
-        const multithread_stream<stream_size>& stream;
-        stream_size_t index;
-    };
+        mutex.lock();
+        if (it.is_ended()) {
+            protected_endp1 = pend;
+            state = stream_normal;
+        } else state = stream_full;
+        endp1 = protected_endp1;
+        mutex.unlock();
+    unlock:
+        producer_mutex.unlock();
+        #undef EMPTY_SIZE
 
-    Iterator data_begin() { return Iterator(*this, protected_start - buffer); }
-    Iterator data_end() { return Iterator(*this, protected_endp1 - buffer); }
-    Iterator empty_begin() { return data_end(); }
-    Iterator empty_end() { return data_begin(); }
+        return (*this);
+    }
 
-    // stream_state_e void 
+    // stream_state_e void
    private:
     mutable std::mutex mutex;
     mutable std::mutex producer_mutex;
@@ -186,9 +209,36 @@ class multithread_stream {
     }
 
     stream_size_t empty_size() {
-        return (protected_endp1 < protected_start) ? 
-            (protected_start - protected_endp1) : 
-            (stream_size - (protected_endp1 - protected_start));
+        return (protected_endp1 < protected_start) ? (protected_start - protected_endp1) : (stream_size - (protected_endp1 - protected_start));
     }
+
+    class Iterator {
+        using self = Iterator;
+        using pointer = uint8_t*;
+        using value_t = uint8_t;
+        using ref = uint8_t&;
+
+       public:
+        Iterator(const multithread_stream<stream_size>& stream_, stream_size_t index_) : stream(stream_), index(index_) {}
+        bool operator!=(const Iterator& other) const {
+            return index != other.index;
+        }
+        Iterator& operator++() {
+            index = (index + 1) % stream_size;
+            return *this;
+        }
+        uint8_t operator*() const {
+            return this->stream.buffer[index];
+        }
+
+       private:
+        const multithread_stream<stream_size>& stream;
+        stream_size_t index;
+    };
+
+    Iterator data_begin() { return Iterator(*this, protected_start - buffer); }
+    Iterator data_end() { return Iterator(*this, protected_endp1 - buffer); }
+    Iterator empty_begin() { return data_end(); }
+    Iterator empty_end() { return data_begin(); }
 };
 }  // namespace EasyRobotCommands
