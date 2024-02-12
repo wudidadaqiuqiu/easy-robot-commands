@@ -29,7 +29,7 @@ class Stream {
     }
     void register_trigger_operation(const trigger_operation<Stream>& operation) {
         opera_when_triggered.change_operation(operation.get_operation());
-    };
+    }
 
     template <ISBlockedConsumer T>
     Stream& operator>>(T& consumer) {
@@ -37,6 +37,11 @@ class Stream {
         while(inner_stream.get_state() != state_e::stream_empty)
             inner_stream >> consumer;
         return *this;
+    }
+
+    template <can_trigger T>
+    Stream& operator<<(T& trigger) {
+        return trigger_chain_join((*this), trigger);
     }
 
    private:

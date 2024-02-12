@@ -20,7 +20,7 @@ inline void debug_log(T1 mes, bool endlit = true) {
     }
 }
 
-static constexpr bool strema_debug_iterator = true;
+static constexpr bool strema_debug_iterator = false;
  
 template<typename T>
 inline void DEBUG_STREAM(bool con, T mes, bool endlit = true) {

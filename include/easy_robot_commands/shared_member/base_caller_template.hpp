@@ -1,9 +1,7 @@
 #pragma once
 
-
 #include <mutex>
 
-#include "easy_robot_commands/shared_member/pkg_info.hpp"
 #include "easy_robot_commands/shared_member/trigger_operation.hpp"
 #include "easy_robot_commands/shared_member/concepts.hpp"
 namespace EasyRobotCommands {
@@ -31,7 +29,7 @@ class ea_base_caller {
    public:
    using struct_data_t = StructDataT<msg_t>;
     ea_base_caller() requires is_trigger_tree_node_concept<ea_base_caller, msg_t> 
-        : struct_data(), opera_when_triggered([](ea_base_caller&) { /*do nothing*/ }){};
+        : struct_data{}, opera_when_triggered([](ea_base_caller&) { /*do nothing*/ }){};
     void triggered_from(typename msg_t::SharedPtr msgptr);
     void trigger() { opera_when_triggered.trigger(*this); };
     void register_trigger_operation(const trigger_operation<ea_base_caller>& operation) {
@@ -60,5 +58,20 @@ inline void ea_base_caller<msg_t>::triggered_from(typename msg_t::SharedPtr msgp
     }
     trigger();
 }
+
+template <typename T, can_trigger U>
+T& trigger_chain_join(T& l, U& r) {
+    auto lambda = [&l](U& trigger) {
+        l.triggered_from(trigger);
+    };
+    r.register_trigger_operation(trigger_operation<U>(lambda));
+    return l;
+}
+
+template <typename msg_t>
+struct BaseCallerWrap {
+    using caller = ea_base_caller<msg_t>;
+};
+
 
 }  // namespace EasyRobotCommands

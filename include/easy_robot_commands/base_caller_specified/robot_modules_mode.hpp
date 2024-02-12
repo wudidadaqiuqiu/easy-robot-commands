@@ -2,7 +2,6 @@
 
 #include "easy_robot_commands/msg/robot_modules_mode.hpp"
 #include "easy_robot_commands/shared_member/base_caller_template.hpp"
-#include "easy_robot_commands/shared_member/pkg_info.hpp"
 #include "easy_robot_commands/shared_member/trigger_operation.hpp"
 
 namespace eamsg = easy_robot_commands::msg;

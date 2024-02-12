@@ -18,6 +18,7 @@ find_package(rclcpp REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RobotModulesMode.msg"
+  "msg/RobotChassisVelocity.msg"
 )
 # export 依赖项 依赖于该包无需显式声明依赖
 ament_export_dependencies(rosidl_default_runtime)
@@ -35,7 +36,9 @@ add_library(${PROJECT_NAME}_funcs SHARED
   include/${PROJECT_NAME}/shared_member/trigger_operation.hpp
   include/${PROJECT_NAME}/shared_member/base_caller_template.hpp
   include/${PROJECT_NAME}/shared_member/concepts.hpp
+  include/${PROJECT_NAME}/shared_member/pkg_info.hpp
   include/${PROJECT_NAME}/base_caller_specified/robot_modules_mode.hpp
+  include/${PROJECT_NAME}/base_caller_specified/robot_chassis_velocity.hpp
 )
 
 # 添加头文件地址

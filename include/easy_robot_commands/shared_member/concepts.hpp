@@ -24,8 +24,9 @@ concept has_triggered_from_member = requires {
 }
 
 template<typename T>
-concept can_trigger = requires(T a) {
+concept can_trigger = requires(T& a) {
     { a.trigger()} -> std::same_as<void>;
+    // typename  decltype(a.register_trigger_operation);
 };
 
 template<typename T, typename caller>
