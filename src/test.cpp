@@ -37,13 +37,13 @@ int main() {
     // }
     // std::cout << "\n\n" << std::endl;
 
-    uint8_t temp[2] = { 0x11, 0x11};
-    uint16_t crc_temp = 0;
-    std::cout << "my constructed crc is: " << ((crc_temp = Config::modbus_calc(temp, 2)))
-        << " hex:" << std::hex  << crc_temp << std::dec << std::endl;
+    // uint8_t temp[2] = { 0x11, 0x11};
+    // uint16_t crc_temp = 0;
+    // std::cout << "my constructed crc is: " << ((crc_temp = Config::modbus_calc(temp, 2)))
+    //     << " hex:" << std::hex  << crc_temp << std::dec << std::endl;
     // EasyRobotCommands::protocol_pack<ProtocolConfig<CRC16Config<0xFFFF, 0x1021>, protocol_type_e::protocol1>>(nullptr, nullptr, 1);
 
-    multithread_stream<10> a;
+    // multithread_stream<10> a;
     // multithread_stream<10>::Iterator p = a.data_begin();
     // (void)p;
 }

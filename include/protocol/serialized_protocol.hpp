@@ -1,14 +1,14 @@
 #pragma once
 #include <cstdint>
+#include <map>
 #include <ranges>
 
 #include "container/concepts.hpp"
+#include "easy_robot_commands/base_caller_specified/robot_modules_mode.hpp"
+#include "easy_robot_commands/shared_member/base_caller_template.hpp"
 #include "easy_robot_commands/shared_member/concepts.hpp"
 #include "protocol/crc.hpp"
-
-#include "easy_robot_commands/shared_member/base_caller_template.hpp"
-#include "easy_robot_commands/base_caller_specified/robot_modules_mode.hpp"
-    namespace EasyRobotCommands {
+namespace EasyRobotCommands {
 using protocol_size_t = uint16_t;
 using protocol_pack_id = uint8_t;
 enum protocol_type_e {
@@ -18,16 +18,17 @@ enum protocol_type_e {
 template <ISCRCConfigable crc_config_t, protocol_type_e type>
 struct ProtocolConfig {
     using CRC_CONFIG = crc_config_t;
+    static constexpr size_t max_len = 127;
     // static constexpr protocol_pack_id ID = id;
     static constexpr protocol_type_e TYPE = type;
 };
-
 
 template <typename protocol_config_t>
 concept ISProtocolConfigable = requires {
     ISCRCConfigable<typename protocol_config_t::CRC_CONFIG>;
     // { protocol_config_t::ID } -> std::convertible_to<protocol_pack_id>;
     { protocol_config_t::TYPE } -> std::convertible_to<protocol_type_e>;
+    { protocol_config_t::max_len } -> std::convertible_to<size_t>;
 };
 
 template <typename T>
@@ -48,8 +49,9 @@ inline uint8_t escape(uint8_t b) {
 
 inline size_t escape_data(uint8_t* data, size_t len, uint8_t* buffer) {
     size_t i = 0;
-    for (uint8_t* p = data ; p < data + len; p++, i++) {
-        if (!need_escape(*p)) *(buffer + i) = *p;
+    for (uint8_t* p = data; p < data + len; p++, i++) {
+        if (!need_escape(*p))
+            *(buffer + i) = *p;
         else {
             *(buffer + i) = 0x7f;
             ++i;
@@ -103,7 +105,7 @@ class PackGenerator /*requires ISProducer*/ {
                 exit_escaping();
                 goto end;
             }
-            // normal calc crc 
+            // normal calc crc
             temp = structure_data[index];
         }
     crc_calc:
@@ -167,4 +169,132 @@ class PackGenerator /*requires ISProducer*/ {
     }
 };
 
+void printArray(const uint8_t* arr, size_t length) {
+    std::cout << std::hex;
+    for (size_t i = 0; i < length; ++i) {
+        std::cout << "0x" << static_cast<int>(arr[i]) << " ";
+    }
+
+    std::cout << std::dec;
+    if (length != 0 && arr[length - 1] == 0x7e)
+        std::cout << std::endl;
+}
+
+template <ISProtocolConfigable configT>
+class Unpacker {
+   public:
+    Unpacker(const std::map<protocol_pack_id, std::function<void(protocol_pack_id, const uint8_t*, protocol_size_t)>>& update_func_map_,
+             const std::map<protocol_pack_id, std::function<bool(protocol_pack_id)>>& wholepkg_check_func_map_)
+        : update_func_map(update_func_map_),
+          wholepkg_check_func_map(wholepkg_check_func_map_),
+          start(buffer),
+          end(buffer),
+          temp(0),
+          state(ptc_init) {
+        static_assert(configT::TYPE == protocol0);
+    }
+
+    Unpacker()
+        : start(buffer),
+          end(buffer),
+          temp(0),
+          state(ptc_init) {
+        static_assert(configT::TYPE == protocol0);
+    }
+
+    void change_map(const std::map<protocol_pack_id, std::function<void(protocol_pack_id, const uint8_t*, protocol_size_t)>>& update_func_map_,
+                    const std::map<protocol_pack_id, std::function<bool(protocol_pack_id)>>& wholepkg_check_func_map_) {
+        update_func_map = update_func_map_;
+        wholepkg_check_func_map = wholepkg_check_func_map_;
+    }
+
+    void unpack(const uint8_t* data, size_t len) {
+        for (int i = 0; i < len; ++i) {
+            switch (*(data + i)) {
+                case 0x7d:  // 判断包头
+                    start = end = buffer;
+                    state = ptc_start;
+                    continue;
+                case 0x7e:  // 判断包尾
+                    // std::cout << "unpacker to the end\n";
+                    if (start != end && wholepkg_check(*start, start, end - start)) {
+                        pack_update(*start, start, end - start);
+                    }
+                    pack_init();
+                    continue;
+                case 0x7f:  // 进行转义  在包中间：0x7d -> 0x7f 0x00
+                            //    0x7e -> 0x7f 0x01
+                            //    0x7f -> 0x7f 0x02
+                    temp = 0x7d;
+                    continue;
+                default:
+                    temp += *(data + i);
+                    break;
+            }
+            switch (state) {
+                case ptc_start:
+                    if (is_key_in_map(temp, wholepkg_check_func_map) && is_key_in_map(temp, update_func_map)) {  // 确认该次的consumer
+                        *(end++) = temp;
+                        state = ptc_data;
+                    } else {
+                        pack_init();
+                    }
+                    break;
+                case ptc_data:
+                    *(end++) = temp;  // 溢出检测
+                    break;
+            }
+            temp = 0;
+        }
+    }
+
+   private:
+    enum protocol_state_e {
+        ptc_init = 0,
+        ptc_start,
+        ptc_data_len,
+        ptc_crc8,
+        ptc_cmd,
+        ptc_data,
+        ptc_crc16,
+    };
+    std::map<protocol_pack_id, std::function<void(protocol_pack_id, const uint8_t*, protocol_size_t)>> update_func_map;
+    std::map<protocol_pack_id, std::function<bool(protocol_pack_id)>> wholepkg_check_func_map;
+    uint8_t buffer[configT::max_len];
+    uint8_t* start;
+    uint8_t* end;
+    uint8_t temp;
+    protocol_state_e state;
+
+    bool wholepkg_check(protocol_pack_id id, const uint8_t* wholepkg, protocol_size_t len) {
+        if ((!is_key_in_map(id, wholepkg_check_func_map)) || wholepkg_check_func_map[id](id) == false) {
+            // std::cout << "unpacker unpack id is " << id << std::endl;
+            return false;
+        }
+        // std::cout << "unpacker crc check, len is " << len << std::endl;
+        // printArray(wholepkg, len);
+        if (len <= 3) return false;
+        uint16_t crc_val;
+        std::memcpy(&crc_val, wholepkg + len - 2, 2);
+        // std::cout << "\ncrc_val is " << crc_val << std::endl;
+        return CRC16<typename configT::CRC_CONFIG>::modbus_calc(wholepkg, len - 2) == crc_val;
+    }
+
+    void pack_update(protocol_pack_id id, const uint8_t* pkg, protocol_size_t len) {
+        if (is_key_in_map(id, update_func_map) && len > 3)
+            update_func_map[id](id, pkg + 1, len - 3);
+    }
+
+    void pack_init() {
+        start = end = buffer;
+        state = ptc_init;
+        temp = 0;
+    }
+
+    template <typename T, typename U>
+    bool is_key_in_map(const T& key, const U& map) {
+        auto v = map.find(key);
+        return (v != map.end());
+    }
+};
 }  // namespace EasyRobotCommands

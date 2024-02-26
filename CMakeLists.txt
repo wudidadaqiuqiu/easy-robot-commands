@@ -19,6 +19,7 @@ find_package(rclcpp REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RobotModulesMode.msg"
   "msg/RobotChassisVelocity.msg"
+  "msg/RobotShootInfo.msg"
 )
 # export 依赖项 依赖于该包无需显式声明依赖
 ament_export_dependencies(rosidl_default_runtime)
