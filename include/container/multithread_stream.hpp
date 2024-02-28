@@ -206,7 +206,14 @@ class multithread_stream {
         return (*this);
     }
 
-
+    void clear() {
+        std::lock_guard<std::mutex> lock(mutex);
+        state = stream_empty;
+        start = buffer;
+        endp1 = buffer;
+        protected_start = buffer;
+        protected_endp1 = buffer;
+    }
     // stream_state_e void
    private:
     mutable std::mutex mutex;
