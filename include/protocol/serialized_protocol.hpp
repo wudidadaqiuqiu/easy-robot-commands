@@ -180,6 +180,8 @@ void printArray(const uint8_t* arr, size_t length) {
         std::cout << std::endl;
 }
 
+using whole_pkg_check_func = std::function<bool(protocol_pack_id)>;
+using update_pkg_func = std::function<void(protocol_pack_id, const uint8_t*, protocol_size_t)>;
 template <ISProtocolConfigable configT>
 class Unpacker {
    public:
@@ -258,8 +260,8 @@ class Unpacker {
         ptc_data,
         ptc_crc16,
     };
-    std::map<protocol_pack_id, std::function<void(protocol_pack_id, const uint8_t*, protocol_size_t)>> update_func_map;
-    std::map<protocol_pack_id, std::function<bool(protocol_pack_id)>> wholepkg_check_func_map;
+    std::map<protocol_pack_id, update_pkg_func> update_func_map;
+    std::map<protocol_pack_id, whole_pkg_check_func> wholepkg_check_func_map;
     uint8_t buffer[configT::max_len];
     uint8_t* start;
     uint8_t* end;
