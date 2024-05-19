@@ -31,6 +31,12 @@ class ea_base_caller {
     ea_base_caller() requires is_trigger_tree_node_concept<ea_base_caller, msg_t> 
         : struct_data{}, opera_when_triggered([](ea_base_caller&) { /*do nothing*/ }){};
     void triggered_from(typename msg_t::SharedPtr msgptr);
+    
+    template <typename U>
+    void called_from(U msgptr) {
+        std::lock_guard<std::mutex> lock(struct_data_mutex);
+        this->struct_data = msgptr;
+    }
     void trigger() { opera_when_triggered.trigger(*this); };
     void register_trigger_operation(const trigger_operation<ea_base_caller>& operation) {
         opera_when_triggered.change_operation(operation.get_operation());
